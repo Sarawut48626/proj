@@ -1,205 +1,371 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+
+const foodOptions = [
+  // เมนูไทย
+  {
+    name: "ข้าวผัดกุ้ง",
+    price: 45,
+    category: "thai",
+    image: "250425-Shrimp-Fried-Rice-cover.webp",
+  },
+  {
+    name: "ผัดกะเพรา",
+    price: 50,
+    category: "thai",
+    image: "download.jpg",
+  },
+  {
+    name: "ต้มยำกุ้ง",
+    price: 80,
+    category: "thai",
+    image: "5608757681874e1ea5df1aa41d5b2e3d_How_To_Make_Tom_Yam_Kung_The_Epitome_Of_Delicious_And_Nutritious_Thai_Cuisine3.jpg",
+  },
+  {
+    name: "ข้าวมันไก่",
+    price: 40,
+    category: "thai",
+    image: "rice-steamed-with-chicken-breast-2-1024x609.jpg",
+  },
+  {
+    name: "ส้มตำ",
+    price: 55,
+    category: "thai",
+    image: "download (1).jpg",
+  },
+  {
+    name: "แกงเขียวหวาน",
+    price: 75,
+    category: "thai",
+    image: "download (2).jpg",
+  },
+  {
+    name: "ไข่เจียว",
+    price: 30,
+    category: "thai",
+    image: "download (3).jpg",
+  },
+
+  // เมนูอิตาเลียน
+  {
+    name: "สปาเก็ตตี้",
+    price: 90,
+    category: "italian",
+    image: "download (4).jpg",
+  },
+  {
+    name: "พิซซ่า",
+    price: 120,
+    category: "italian",
+    image: "11.-พิซซ่าหน้ารวมชีส-1024x683.webp",
+  },
+  {
+    name: "ลาซานญ่า",
+    price: 110,
+    category: "italian",
+    image: "download (5).jpg",
+  },
+  {
+    name: "ริซอตโต้",
+    price: 95,
+    category: "italian",
+    image: "fcb26a89be054540a4f6f32e9ec7f97f.webp",
+  },
+
+  // เมนูญี่ปุ่น
+  {
+    name: "ซูชิ",
+    price: 110,
+    category: "japanese",
+    image: "download (6).jpg",
+  },
+  {
+    name: "ราเมน",
+    price: 85,
+    category: "japanese",
+    image: "download (7).jpg",
+  },
+  {
+    name: "เทมปุระ",
+    price: 90,
+    category: "japanese",
+    image: "download (8).jpg",
+  },
+];
+
+const categories = [
+  { key: "all", label: "ทั้งหมด" },
+  { key: "thai", label: "ไทย" },
+  { key: "italian", label: "อิตาเลียน" },
+  { key: "japanese", label: "ญี่ปุ่น" },
+];
 
 function App() {
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [menuList, setMenuList] = useState([]);
-  const [newMenu, setNewMenu] = useState({ name: "", price: "", category: "", image: "" });
-  const [editMenuId, setEditMenuId] = useState(null);
-  const [editMenuData, setEditMenuData] = useState({ name: "", price: "", category: "", image: "" });
+  const [editIndex, setEditIndex] = useState(null);
+  const [editQty, setEditQty] = useState(1);
+  const [customerName, setCustomerName] = useState("");
+  const [isPayOpen, setIsPayOpen] = useState(false);
 
-  const API_URL = "http://localhost:3000/api";
-
-  const fetchMenu = async () => {
-    const res = await fetch(`${API_URL}/getMenu`);
-    const data = await res.json();
-    setMenuList(data);
-  };
-
+  // โหลดข้อมูลจาก localStorage
   useEffect(() => {
-    fetchMenu();
+    const storedMenu = localStorage.getItem("menuList");
+    if (storedMenu) setMenuList(JSON.parse(storedMenu));
+
+    const storedName = localStorage.getItem("customerName");
+    if (storedName) setCustomerName(storedName);
   }, []);
 
-  const addMenu = async () => {
-    if (!newMenu.name || !newMenu.price || !newMenu.category) return alert("กรอกข้อมูลให้ครบ!");
-    await fetch(`${API_URL}/addMenu`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newMenu),
-    });
-    setNewMenu({ name: "", price: "", category: "", image: "" });
-    fetchMenu();
+  // บันทึกข้อมูลลง localStorage
+  useEffect(() => {
+    localStorage.setItem("menuList", JSON.stringify(menuList));
+  }, [menuList]);
+
+  useEffect(() => {
+    localStorage.setItem("customerName", customerName);
+  }, [customerName]);
+
+  // ฟิลเตอร์เมนูตามหมวดหมู่
+  const filteredFoodOptions =
+    selectedCategory === "all"
+      ? foodOptions
+      : foodOptions.filter((f) => f.category === selectedCategory);
+  // เพิ่มเมนูลงในรายการ
+  const addMenu = (food) => {
+    const existing = menuList.find((item) => item.name === food.name);
+    if (existing) {
+      const updated = menuList.map((item) =>
+        item.name === food.name ? { ...item, qty: item.qty + 1 } : item
+      );
+      setMenuList(updated);
+    } else {
+      setMenuList([...menuList, { ...food, qty: 1 }]);
+    }
   };
 
-  const startEdit = (menu) => {
-    setEditMenuId(menu.id);
-    setEditMenuData(menu);
+  // เริ่มแก้ไขจำนวนจาน
+  const startEdit = (index) => {
+    setEditIndex(index);
+    setEditQty(menuList[index].qty);
   };
 
-  const saveEdit = async () => {
-    await fetch(`${API_URL}/updateMenu`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ menuId: editMenuId, ...editMenuData }),
-    });
-    setEditMenuId(null);
-    fetchMenu();
+  // บันทึกจำนวนจาน
+  const saveEdit = () => {
+    const updatedList = [...menuList];
+    updatedList[editIndex].qty = Number(editQty);
+    setMenuList(updatedList);
+    setEditIndex(null);
   };
 
-  const deleteMenu = async (id) => {
-    if (!window.confirm("ต้องการลบเมนูนี้หรือไม่?")) return;
-    await fetch(`${API_URL}/deleteMenu/${id}`, { method: "DELETE" });
-    fetchMenu();
+  // ยกเลิกแก้ไข
+  const cancelEdit = () => {
+    setEditIndex(null);
+    setEditQty(1);
   };
 
+  // ลบเมนู
+  const deleteMenu = (index) => {
+    if (window.confirm("ต้องการลบเมนูนี้หรือไม่?")) {
+      setMenuList(menuList.filter((_, i) => i !== index));
+    }
+  };
+
+  // คำนวณราคารวม
+  const totalPrice = menuList.reduce((sum, item) => sum + item.price * item.qty, 0);
+
+  // เริ่มชำระเงิน
+  const handlePayment = () => {
+    if (!customerName) {
+      alert("กรุณากรอกชื่อลูกค้าก่อนชำระเงิน");
+      return;
+    }
+    if (menuList.length === 0) {
+      alert("ยังไม่มีรายการอาหารในตะกร้า");
+      return;
+    }
+    setIsPayOpen(true);
+  };
+
+  const confirmPayment = () => {
+    alert(`✅ ชำระเงินเรียบร้อย\n👤 ลูกค้า: ${customerName}\n💰 ราคารวม: ${totalPrice} บาท\nขอบคุณที่ใช้บริการ!`);
+    setMenuList([]);
+    setCustomerName("");
+    setIsPayOpen(false);
+  };
   return (
-    <div style={{ padding: "2rem", fontFamily: "Poppins, sans-serif", maxWidth: "1200px", margin: "0 auto" }}>
-      <h1 style={{ textAlign: "center", marginBottom: "2rem", color: "#ff5722" }}>🍲 ร้านอาหารของเรา</h1>
+    <div className="min-h-screen bg-[#0e0e10] text-white p-8 max-w-6xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6 text-orange-400">🍽️ ร้านอาหาร My IT</h1>
 
-      {/* ฟอร์มเพิ่มเมนู */}
-      <div
-        style={{
-          display: "flex",
-          gap: "1rem",
-          flexWrap: "wrap",
-          marginBottom: "2rem",
-          backgroundColor: "#fafafaff",
-          padding: "1rem",
-          borderRadius: "12px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-        }}
-      >
+      {/* ใส่ชื่อลูกค้า */}
+      <div className="mb-6">
         <input
-          style={{ flex: 1, padding: "0.5rem", borderRadius: "8px", border: "1px solid #000000ff", color: "#000000ff" }}
+          type="text"
           placeholder="ชื่อลูกค้า"
-          value={newMenu.name}
-          onChange={(e) => setNewMenu({ ...newMenu, name: e.target.value })}
+          value={customerName}
+          onChange={(e) => setCustomerName(e.target.value)}
+          className="w-full max-w-sm px-4 py-3 rounded-xl bg-[#1a1a1d] border border-gray-600 focus:outline-none focus:border-orange-400"
         />
-        <input
-          type="number"
-          style={{ width: "300px", padding: "0.5rem", borderRadius: "8px", border: "1px solid #000000ff", color: "#000000ff" }}
-          placeholder="ราคา"
-          value={newMenu.price}
-          onChange={(e) => setNewMenu({ ...newMenu, price: e.target.value })}
-        />
-        <input
-          style={{ width: "250px", padding: "0.5rem", borderRadius: "8px", border: "1px solid #000000ff", color: "#000000ff" }}
-          placeholder="ชื้อเมนูอาหาร"
-          value={newMenu.category}
-          onChange={(e) => setNewMenu({ ...newMenu, category: e.target.value })}
-        />
-        {/* <input
-          style={{ flex: 1, padding: "0.5rem", borderRadius: "8px", border: "1px solid #000000ff", color: "#000000ff" }}
-          placeholder="URL รูปเมนู (optional)"
-          value={newMenu.image}
-          onChange={(e) => setNewMenu({ ...newMenu, image: e.target.value })}
-        /> */}
-        <button
-          onClick={addMenu}
-          style={{
-            padding: "0.5rem 1rem",
-            backgroundColor: "#ff5722",
-            color: "#ffffffff",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontWeight: "bold",
-          }}
-        >
-          เพิ่มเมนู
-        </button>
       </div>
 
-      {/* แสดงเมนูแบบ Card Grid */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "1.5rem",
-        }}
-      >
-        {menuList.map((menu) => (
-          <div
-            key={menu.id}
-            style={{
-              backgroundColor: "#f7f6f6ff",
-              borderRadius: "12px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-              transition: "transform 0.2s",
-            }}
+      {/* ปุ่มเลือกประเภทอาหาร */}
+      <div className="mb-6 flex gap-4 flex-wrap">
+        {categories.map((cat) => (
+          <button
+            key={cat.key}
+            onClick={() => setSelectedCategory(cat.key)}
+            className={`px-4 py-2 rounded-full font-semibold ${
+              selectedCategory === cat.key
+                ? "bg-orange-500 text-white"
+                : "bg-[#1a1a1d] text-gray-400 hover:bg-[#2a2a2f]"
+            }`}
           >
-            {menu.image && (
-              <img
-                src={menu.image}
-                alt={menu.name}
-                style={{ width: "100%", height: "140px", objectFit: "cover" }}
-              />
-            )}
-            <div style={{ padding: "1rem", flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-              {editMenuId === menu.id ? (
-                <>
-                  <input
-                    style={{ marginBottom: "0.5rem", padding: "0.5rem", borderRadius: "8px", border: "1px solid #000000ff", color: "#000000ff" }}
-                    value={editMenuData.name}
-                    onChange={(e) => setEditMenuData({ ...editMenuData, name: e.target.value })}
-                  />
-                  <input
-                    type="number"
-                    style={{ marginBottom: "0.5rem", padding: "0.5rem", borderRadius: "8px", border: "1px solid #010000ff", color: "#000000ff" }}
-                    value={editMenuData.price}
-                    onChange={(e) => setEditMenuData({ ...editMenuData, price: e.target.value })}
-                  />
-                  <input
-                    style={{ marginBottom: "0.5rem", padding: "0.5rem", borderRadius: "8px", border: "1px solid #000000ff", color: "#000000ff" }}
-                    value={editMenuData.category}
-                    onChange={(e) => setEditMenuData({ ...editMenuData, category: e.target.value })}
-                  />
-                  {/* <input
-                    style={{ marginBottom: "0.5rem", padding: "0.5rem", borderRadius: "8px", border: "1px solid #020000ff", color: "#000000ff" }}
-                    value={editMenuData.status}
-                    onChange={(e) => setEditMenuData({ ...editMenuData, status: e.target.value })}
-                  /> */}
-                  <div style={{ display: "flex", gap: "0.5rem" }}>
-                    <button
-                      onClick={saveEdit}
-                      style={{ flex: 1, padding: "0.5rem", backgroundColor: "#ff9800", color: "#fff", border: "none", borderRadius: "8px" }}
-                    >
-                      บันทึก
-                    </button>
-                    <button
-                      onClick={() => setEditMenuId(null)}
-                      style={{ flex: 1, padding: "0.5rem", backgroundColor: "#9e9e9e", color: "#fff", border: "none", borderRadius: "8px" }}
-                    >
-                      ยกเลิก
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h3 style={{ margin: "0 0 0.5rem 0", color: "#ff5722" }}>{menu.name}</h3>
-                  <p style={{ margin: "0.25rem 0", color: "#000000ff" }}>💰 {menu.price} บาท</p>
-                  <p style={{ margin: "0.25rem 0", color: "#000000ff" }}>🥗 {menu.category}</p>
-                  <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
-                    <button
-                      onClick={() => startEdit(menu)}
-                      style={{ flex: 1, padding: "0.5rem", backgroundColor: "#ff9800", color: "#fff", border: "none", borderRadius: "8px" }}
-                    >
-                      แก้ไข
-                    </button>
-                    <button
-                      onClick={() => deleteMenu(menu.id)}
-                      style={{ flex: 1, padding: "0.5rem", backgroundColor: "#f44336", color: "#fff", border: "none", borderRadius: "8px" }}
-                    >
-                      ลบ
-                    </button>
-                  </div>
-                </>
-              )}
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
+      {/* เมนูอาหารให้เลือก (รูปภาพ) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-10">
+        {filteredFoodOptions.map((food, i) => (
+          <div
+            key={i}
+            onClick={() => addMenu(food)}
+            className="cursor-pointer bg-[#1a1a1d] rounded-xl overflow-hidden shadow hover:shadow-lg transition"
+          >
+            <img src={food.image} alt={food.name} className="w-full h-32 object-cover" />
+            <div className="p-3">
+              <p className="font-semibold">{food.name}</p>
+              <p className="text-orange-400">{food.price} ฿</p>
             </div>
           </div>
         ))}
       </div>
+      {/* รายการเมนูที่เลือก */}
+      <h2 className="text-xl mb-4 text-orange-300">📝 รายการเมนู</h2>
+      {menuList.length === 0 && (
+        <p className="text-gray-400 mb-6">ยังไม่มีเมนูในรายการ</p>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {menuList.map((menu, index) => (
+          <div
+            key={index}
+            className="bg-[#1a1a1d] rounded-xl shadow p-4 flex flex-col"
+          >
+            <img
+              src={menu.image}
+              alt={menu.name}
+              className="w-full h-32 object-cover rounded mb-3"
+            />
+            <h3 className="font-semibold">{menu.name}</h3>
+            <p className="text-orange-400">{menu.price} ฿</p>
+            <p className="text-gray-400 mb-2 capitalize">หมวด: {menu.category}</p>
+
+            {editIndex === index ? (
+              <>
+                <input
+                  type="number"
+                  min="1"
+                  value={editQty}
+                  onChange={(e) => setEditQty(e.target.value)}
+                  className="mb-3 px-2 py-1 rounded bg-[#333] border border-gray-600 text-white w-full"
+                />
+                <div className="mt-auto flex gap-2">
+                  <button
+                    onClick={saveEdit}
+                    className="bg-green-500 hover:bg-green-400 px-3 py-1 rounded"
+                  >
+                    บันทึก
+                  </button>
+                  <button
+                    onClick={cancelEdit}
+                    className="bg-gray-500 hover:bg-gray-400 px-3 py-1 rounded"
+                  >
+                    ยกเลิก
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-white mb-3">จำนวน: {menu.qty} จาน</p>
+                <div className="mt-auto flex gap-2">
+                  <button
+                    onClick={() => startEdit(index)}
+                    className="bg-blue-500 hover:bg-blue-400 px-3 py-1 rounded"
+                  >
+                    แก้ไข
+                  </button>
+                  <button
+                    onClick={() => deleteMenu(index)}
+                    className="bg-red-500 hover:bg-red-400 px-3 py-1 rounded"
+                  >
+                    ลบ
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ราคารวม */}
+      <div className="mt-10 p-4 bg-[#1a1a1d] rounded-xl text-right text-orange-400 font-bold text-lg">
+        ราคารวม: {totalPrice} ฿
+      </div>
+
+      {/* ปุ่มชำระเงิน */}
+      <div className="mt-6 flex justify-end">
+        <button
+          onClick={handlePayment}
+          className="bg-green-600 hover:bg-green-500 px-6 py-3 rounded font-semibold shadow"
+        >
+          ชำระเงิน
+        </button>
+      </div>
+      {/* popup ยืนยันการชำระเงิน */}
+      {isPayOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-[#1a1a1d] p-6 rounded-xl max-w-md w-full">
+            <h2 className="text-2xl font-bold text-orange-400 mb-4">
+              ยืนยันการชำระเงิน
+            </h2>
+            <p className="mb-2">
+              👤 ลูกค้า: <span className="font-semibold">{customerName}</span>
+            </p>
+            <p className="mb-2">📋 รายการอาหาร:</p>
+            <ul className="mb-4 max-h-40 overflow-auto">
+              {menuList.map((menu, i) => (
+                <li
+                  key={i}
+                  className="border-b border-gray-700 py-1 flex justify-between"
+                >
+                  <span>
+                    {menu.name} × {menu.qty}
+                  </span>
+                  <span>{menu.price * menu.qty} ฿</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-lg font-semibold mb-4 text-right">
+              💰 ราคารวม: {totalPrice} บาท
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsPayOpen(false)}
+                className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={confirmPayment}
+                className="bg-green-600 hover:bg-green-500 px-4 py-2 rounded"
+              >
+                ยืนยันชำระเงิน
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
