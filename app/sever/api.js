@@ -1,36 +1,22 @@
-// =============================
-// 🍽️ Backend API: api.js
-// ระบบร้านอาหาร ใช้ Node.js + Express + Firebase Firestore
-// =============================
-
-// 👉 ก่อนใช้งานติดตั้งแพ็กเกจ:
-// npm install express cors firebase-admin
-
 import express from 'express';
 import cors from 'cors';
 import admin from 'firebase-admin';
 import serviceAccount from './firebase/palm-1006-5-firebase-adminsdk-fbsvc-c7100f3a20.json' with { type: 'json' };
 
-// -------------------------
-// 🔹 ตั้งค่า Firebase Admin SDK
-// -------------------------
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 const db = admin.firestore();
 
-// -------------------------
-// 🔹 สร้าง Express App
-// -------------------------
+
 const app = express();
 const port = 3000;
 
 app.use(express.json());
 app.use(cors());
 
-// -------------------------
-// 🔹 ฟังก์ชันดึงข้อมูลทั้งหมดจาก Firestore
-// -------------------------
+
 async function fetchMenu() {
   const result = [];
   const menuRef = db.collection('palm1');
@@ -44,16 +30,14 @@ async function fetchMenu() {
   return result;
 }
 
-// -------------------------
-// 🔹 ROUTES
-// -------------------------
 
-// ✅ Test route
+
+
 app.get('/', (req, res) => {
   res.send('🍽️ Hello from Firebase Restaurant API!');
 });
 
-// ✅ GET: ดึงข้อมูลเมนูทั้งหมด
+
 // URL: http://localhost:3000/api/getMenu
 app.get('/api/getMenu', (req, res) => {
   res.set('Content-type', 'application/json');
@@ -62,7 +46,7 @@ app.get('/api/getMenu', (req, res) => {
     .catch((error) => res.status(500).json({ success: false, message: error.message }));
 });
 
-// ✅ POST: เพิ่มเมนูใหม่ (Insert)
+
 // URL: http://localhost:3000/api/addMenu
 async function addMenu(newMenu) {
   const newMenuRef = db.collection('palm1').doc();
@@ -85,7 +69,7 @@ app.post('/api/addMenu', async (req, res) => {
   }
 });
 
-// ✅ GET: ดึงเมนู 1 รายการ
+
 // URL: http://localhost:3000/api/getMenu/:menuId
 async function fetchOneMenu(menuId) {
   const doc = await db.collection('palm1').doc(menuId).get();
@@ -103,7 +87,7 @@ app.get('/api/getMenu/:menuId', async (req, res) => {
   }
 });
 
-// ✅ POST: อัปเดตเมนู (Update)
+
 // URL: http://localhost:3000/api/updateMenu
 async function updateMenu(menuId, menuData) {
   const docRef = db.collection('palm1').doc(menuId);
@@ -124,7 +108,7 @@ app.post('/api/updateMenu', async (req, res) => {
   }
 });
 
-// ✅ DELETE: ลบเมนูออกจาก Firestore
+
 // URL: http://localhost:3000/api/deleteMenu/:menuId
 async function deleteMenu(menuId) {
   const docRef = db.collection('palm1').doc(menuId);
@@ -141,9 +125,7 @@ app.delete('/api/deleteMenu/:menuId', async (req, res) => {
   }
 });
 
-// -------------------------
-// 🔹 เริ่มรันเซิร์ฟเวอร์
-// -------------------------
+
 app.listen(port, () => {
   console.log(`🚀 Server running on: http://localhost:${port}`);
 });
